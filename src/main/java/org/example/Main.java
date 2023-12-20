@@ -1,24 +1,41 @@
 package org.example;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.apache.commons.io.FileUtils;
 
+import java.io.File;
+import java.io.IOException;
 
-class UniqueElementsFilter {
+class CatImageFetcher {
     public static void main(String[] args) {
-        String[] inputArray = {"A", "B", "C", "A", "D", "B", "Z", "Y", "R", "Z"};
-        String[] uniqueElements = filterUniqueElements(inputArray);
+        try {
+            // Make GET request to the Cat API
+            OkHttpClient client = new OkHttpClient();
+            Request request = new Request.Builder()
+                    .url("https://api.thecatapi.com/v1/images/search")
+                    .build();
 
-        // Print the unique elements
-        System.out.println(Arrays.toString(uniqueElements));
-    }
+            Response response = client.newCall(request).execute();
+            String responseBody = response.body().string();
 
-    private static String[] filterUniqueElements(String[] inputArray) {
-        // Create a HashSet to store unique elements
-        Set<String> uniqueSet = new HashSet<>(Arrays.asList(inputArray));
+            // Parse JSON response using GSON
+            JsonParser jsonParser = new JsonParser();
+            JsonObject jsonObject = jsonParser.parse(responseBody).getAsJsonArray().get(0).getAsJsonObject();
+            String imageUrl = jsonObject.get("url").getAsString();
 
-        // Convert the HashSet back to an array
-        return uniqueSet.toArray(new String[0]);
+            // Download and save the image using FileUtils
+            byte[] imageBytes = client.newCall(new Request.Builder().url(imageUrl).build()).execute().body().bytes();
+            File imageFile = new File("cat_image.jpg");
+            FileUtils.writeByteArrayToFile(imageFile, imageBytes);
+
+            System.out.println("Random cat image saved to: " + imageFile.getAbsolutePath());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
